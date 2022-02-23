@@ -30,6 +30,7 @@ struct keyval_ log_names[] = {
     { L2TP,          "l2tp" },
     { DHCP,          "dhcp" },
     { ISIS,          "isis" },
+    { TCP,           "tcp" },
     { 0, NULL}
 };
 

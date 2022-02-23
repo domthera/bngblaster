@@ -1895,6 +1895,13 @@ encode_ethernet(uint8_t *buf, uint16_t *len,
         BUMP_WRITE_BUFFER(buf, len, sizeof(uint16_t));
     }
 
+    if(eth->next && eth->next_len) {
+        /* RAW ethernet packet */
+        memcpy(buf, eth->next, eth->next_len);
+        BUMP_WRITE_BUFFER(buf, len, eth->next_len);
+        return PROTOCOL_SUCCESS;
+    }
+
     /* Add protocol header */
     switch(eth->type) {
         case ETH_TYPE_PPPOE_DISCOVERY:
@@ -1908,7 +1915,7 @@ encode_ethernet(uint8_t *buf, uint16_t *len,
         case ETH_TYPE_IPV6:
             return encode_ipv6(buf, len, (bbl_ipv6_t*)eth->next);
         case ETH_TYPE_CFM:
-            return encode_cfm(buf, len, (bbl_cfm_t*)eth->next);
+            return encode_cfm(buf, len, (bbl_cfm_t*)eth->next);            
         default:
             return UNKNOWN_PROTOCOL;
     }
@@ -2558,12 +2565,13 @@ decode_ipv6(uint8_t *buf, uint16_t len,
 
     bbl_ipv6_t *ipv6;
 
-    if(len < 40 || sp_len < sizeof(bbl_ipv6_t)) {
+    if(len < IPV6_HDR_LEN || sp_len < sizeof(bbl_ipv6_t)) {
         return DECODE_ERROR;
     }
 
     /* Init IPv6 header */
     ipv6 = (bbl_ipv6_t*)sp; BUMP_BUFFER(sp, sp_len, sizeof(bbl_ipv6_t));
+    ipv6->hdr = buf;
 
     /* Check if version is 6 */
     if(((*buf >> 4) & 0xf) != 6) {
@@ -2587,6 +2595,7 @@ decode_ipv6(uint8_t *buf, uint16_t len,
         return DECODE_ERROR;
     }
     len = ipv6->payload_len;
+    ipv6->len = IPV6_HDR_LEN + len;
 
      /* Decode protocol */
     switch(ipv6->protocol) {
@@ -2604,7 +2613,6 @@ decode_ipv6(uint8_t *buf, uint16_t len,
     *_ipv6 = ipv6;
     return ret_val;
 }
-
 
 /*
  * decode_ipv4
@@ -2636,7 +2644,6 @@ decode_ipv4(uint8_t *buf, uint16_t len,
     const struct ip* header;
 
     uint16_t ipv4_header_len;
-    uint16_t ipv4_total_len;
 
     if(len < 20 || sp_len < sizeof(bbl_ipv4_t)) {
         return DECODE_ERROR;
@@ -2646,6 +2653,7 @@ decode_ipv4(uint8_t *buf, uint16_t len,
     ipv4 = (bbl_ipv4_t*)sp; BUMP_BUFFER(sp, sp_len, sizeof(bbl_ipv4_t));
     ipv4->router_alert_option = false;
 
+    ipv4->hdr = buf;
     header = (struct ip*)buf;
 
     /* Check if version is 4 */
@@ -2661,9 +2669,9 @@ decode_ipv4(uint8_t *buf, uint16_t len,
     }
 
     ipv4->tos = header->ip_tos;
-    ipv4_total_len = be16toh(header->ip_len);
-    if(ipv4_header_len > ipv4_total_len ||
-       ipv4_total_len > len)  {
+    ipv4->len = be16toh(header->ip_len);
+    if(ipv4_header_len > ipv4->len ||
+       ipv4->len > len)  {
         return DECODE_ERROR;
     }
 
@@ -2676,7 +2684,7 @@ decode_ipv4(uint8_t *buf, uint16_t len,
     BUMP_BUFFER(buf, len, ipv4_header_len);
 
     ipv4->payload = buf;
-    ipv4->payload_len = ipv4_total_len - ipv4_header_len;
+    ipv4->payload_len = ipv4->len - ipv4_header_len;
 
     if(ipv4->payload_len > len) {
         return DECODE_ERROR;

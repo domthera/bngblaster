@@ -42,6 +42,27 @@ target_link_libraries(bngblaster ${CURSES_LIBRARIES} crypto jansson ${libdict} m
 set(PLATFORM_SPECIFIC_LIBS "-lpthread")
 string(APPEND CMAKE_C_FLAGS "-pthread")
 
+# add LwIP
+
+set(LWIP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/extern/lwip)
+set(LWIP_DEFINITIONS LWIP_DEBUG=1)
+set(LWIP_DEFINITIONS LWIP_TCPIP_CORE_LOCKING=1)
+set(LWIP_DEFINITIONS LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS=1)
+
+include(${LWIP_DIR}/contrib/ports/CMakeCommon.cmake)
+set(LWIP_INCLUDE_DIRS
+    "src/lwip"
+    "${LWIP_DIR}/src/include"
+    "${LWIP_DIR}/contrib/"
+    "${LWIP_DIR}/contrib/ports/unix/port/include"
+)
+
+include(${LWIP_DIR}/src/Filelists.cmake)
+include(${LWIP_DIR}/contrib/Filelists.cmake)
+include(${LWIP_DIR}/contrib/ports/unix/Filelists.cmake)
+target_include_directories(bngblaster PRIVATE ${LWIP_INCLUDE_DIRS})
+target_compile_definitions(bngblaster PRIVATE ${LWIP_DEFINITIONS} ${LWIP_MBEDTLS_DEFINITIONS})
+target_link_libraries(bngblaster ${LWIP_SANITIZER_LIBS} lwipcore lwipcontribportunix)
 
 # add experimental netmap support
 if(BNGBLASTER_NETMAP)

@@ -35,6 +35,7 @@ enum {
     L2TP,
     DHCP,
     ISIS,
+    TCP,
     LOG_ID_MAX
 };
 

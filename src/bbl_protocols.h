@@ -44,6 +44,7 @@
 #define ETH_TYPE_IPV6                   0x86dd
 #define ETH_TYPE_CFM                    0x8902
 #define ETH_TYPE_MPLS                   0x8847
+#define ETH_TYPE_RAW                    0xffff
 
 #define ETH_ADDR_LEN                    6
 #define ETH_VLAN_ID_MAX                 4095
@@ -60,6 +61,7 @@
 #define IPV4_MF                         0x2000 /* more fragments flag */
 #define IPV4_OFFMASK                    0x1fff /* mask for fragmenting bits */
 
+#define IPV6_HDR_LEN                    40
 #define IPV6_ADDR_LEN                   16
 #define IPV6_IDENTIFER_LEN              8
 
@@ -523,7 +525,7 @@ typedef struct bbl_ethernet_header_ {
 
     bbl_mpls_t *mpls; /* MPLS */
     void       *next; /* next header */
-
+    uint16_t    next_len; /* only used for raw packets */
     struct timespec timestamp; /* receive timestamp */
 } bbl_ethernet_header_t;
 
@@ -654,13 +656,15 @@ typedef struct bbl_ipv4_ {
     uint32_t    src;
     uint32_t    dst;
     uint8_t     tos;
-    uint16_t    offset;
     uint8_t     ttl;
     uint8_t     protocol;
+    bool        router_alert_option; /* add router alert option if true */
+    uint16_t    offset;
+    uint16_t    len; /* IPv4 total length */
+    uint8_t    *hdr; /* IPv4 header start */
     void       *next; /* next header */
     void       *payload; /* IPv4 payload */
     uint16_t    payload_len; /* IPv4 payload length */
-    bool        router_alert_option; /* add router alert option if true */
 } bbl_ipv4_t;
 
 /*
@@ -672,6 +676,8 @@ typedef struct bbl_ipv6_ {
     uint8_t     tos;
     uint8_t     ttl;
     uint8_t     protocol;
+    uint16_t    len; /* IPv6 total length */
+    uint8_t    *hdr; /* IPv6 header start */
     void       *next; /* next header */
     void       *payload; /* IPv6 payload */
     uint16_t    payload_len; /* IPv6 payload length */
