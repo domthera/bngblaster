@@ -85,6 +85,8 @@ typedef struct bbl_ctx_
 
     void *stream_thread; /* single linked list of threads */
 
+    bool tcp;
+
     /* Interfaces */
     struct {
         uint8_t count;
@@ -100,6 +102,7 @@ typedef struct bbl_ctx_
         struct bbl_interface_ *a10nsp_if[BBL_MAX_INTERFACES];
     } interfaces;
 
+    bgp_session_t *bgp_sessions;
     isis_instance_t *isis_instances;
 
     /* Scratchpad memory */
@@ -171,6 +174,9 @@ typedef struct bbl_ctx_
 
         /* Traffic Streams */
         void *stream_config;
+
+        /* BGP Instances */
+        bgp_config_t *bgp_config;
 
         /* ISIS Instances */
         isis_config_t *isis_config;
@@ -301,6 +307,18 @@ typedef struct bbl_ctx_
         bbl_l2tp_server_t *l2tp_server;
     } config;
 } bbl_ctx_s;
+
+int
+bbl_compare_key32 (void *key1, void *key2);
+
+uint
+bbl_key32_hash(const void* k);
+
+int
+bbl_compare_key64(void *key1, void *key2);
+
+uint
+bbl_key64_hash(const void* k);
 
 bbl_ctx_s *
 bbl_ctx_add(void);
